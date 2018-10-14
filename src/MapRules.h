@@ -53,7 +53,7 @@ public:
     std::string get() override;
 
 private:
-    std::uniform_int_distribution<int> dist;
+    std::uniform_int_distribution<long> dist;
 };
 
 // DRAND
@@ -63,7 +63,7 @@ public:
     std::string get() override;
 
 private:
-    std::uniform_int_distribution<int> dist_year_;
+    std::uniform_int_distribution<long> dist_year_;
     std::uniform_int_distribution<int> dist_month_;
     std::uniform_int_distribution<int> dist_28_;
     std::uniform_int_distribution<int> dist_29_;

@@ -5,7 +5,7 @@
 #undef max
 #endif // max
 
-#include <gsl/gsl>
+//#include <gsl/gsl>
 
 #include "error.h"
 

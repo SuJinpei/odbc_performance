@@ -67,4 +67,4 @@ private:
 
 ConsoleLog& console();
 
-#endif CONSOLE_LOG_H
+#endif // CONSOLE_LOG_H

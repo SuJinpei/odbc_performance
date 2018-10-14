@@ -103,7 +103,7 @@ void Runner::generate_jobs()
             odb_warning("TODO: unimplemented option '", cmd.first, "'\n");
         }
 
-        Expects(pjob.get() != nullptr);
+        // Expects(pjob.get() != nullptr);
 
         pjob->init(options_, cmd.second);
         jobs_.push_back(std::move(pjob));

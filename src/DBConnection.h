@@ -24,6 +24,7 @@ public:
     DBConnection(DBConnection&& other);
     DBConnection& operator=(DBConnection&& other);
 
+    void connect(std::string connect_string);
     void execute_query(std::string query);
     void execute_direct(std::string query);
     void print_result(std::vector<ColumnMeta>&& results_meta, bool print_header = true);

@@ -14,6 +14,30 @@ DBConnection::DBConnection()
 
 DBConnection::DBConnection(std::string connect_string)
 {
+    connect(connect_string);
+}
+
+DBConnection::DBConnection(std::string dsn, std::string uid, std::string pwd)
+{
+    std::ostringstream conn_oss;
+    conn_oss << "DSN=" << dsn << ";UID=" << uid << ";PWD=" << pwd;
+    connect(conn_oss.str());
+}
+
+DBConnection::DBConnection(DBConnection && other)
+{
+    *this = std::move(other);
+}
+
+DBConnection & DBConnection::operator=(DBConnection && other)
+{
+    std::swap(this->henv_, other.henv_);
+    std::swap(this->hdbc_, other.hdbc_);
+    std::swap(this->hstmt_, other.hstmt_);
+    return *this;
+}
+
+void DBConnection::connect(std::string connect_string) {
     if (!SQL_SUCCEEDED(SQLAllocHandle(SQL_HANDLE_ENV, NULL, &henv_))) {
         odb_error("Alloc ODBC env failed");
     }
@@ -43,36 +67,13 @@ DBConnection::DBConnection(std::string connect_string)
         diag_henv();
         diag_hdbc();
     }
-}
 
-DBConnection::DBConnection(std::string dsn, std::string uid, std::string pwd)
-{
-    std::ostringstream conn_oss;
-    conn_oss << "DSN=" << dsn << ";UID=" << uid << ";PWD=" << pwd;
-    DBConnection::DBConnection(conn_oss.str());
-}
-
-DBConnection::DBConnection(DBConnection && other)
-{
-    *this = std::move(other);
-}
-
-DBConnection & DBConnection::operator=(DBConnection && other)
-{
-    std::swap(this->henv_, other.henv_);
-    std::swap(this->hdbc_, other.hdbc_);
-    std::swap(this->hstmt_, other.hstmt_);
-    return *this;
 }
 
 void DBConnection::execute_query(std::string query)
 {
-    HANDLE hc = GetStdHandle(STD_OUTPUT_HANDLE);
-
     if (!SQL_SUCCEEDED(SQLExecDirect(hstmt_, (SQLCHAR*)query.c_str(), SQL_NTS))) {
-        SetConsoleTextAttribute(hc, 12);
         std::cout << "SQL QUERY ERROR\n";
-        SetConsoleTextAttribute(hc, 7);
         diag_all();
     }
     else {
@@ -82,9 +83,7 @@ void DBConnection::execute_query(std::string query)
             print_result(std::move(results_meta), is_select_query(query));
         }
 
-        SetConsoleTextAttribute(hc, 10);
         std::cout << "\n--- SQL operation success!\n";
-        SetConsoleTextAttribute(hc, 7);
     }
 }
 
@@ -98,8 +97,6 @@ void DBConnection::execute_direct(std::string query)
 
 void DBConnection::print_result(std::vector<ColumnMeta>&& results_meta, bool print_header)
 {
-    HANDLE hc = GetStdHandle(STD_OUTPUT_HANDLE);
-
     size_t line_width = 0;
     size_t max_column_width = 0;
     std::vector<size_t> column_widths(results_meta.size());
@@ -143,7 +140,6 @@ void DBConnection::print_result(std::vector<ColumnMeta>&& results_meta, bool pri
     }
 
     if (print_header) {
-        SetConsoleTextAttribute(hc, 11);
         std::string sepline;
         for (size_t c = 0, maxc = results_meta.size(); c < maxc; ++c) {
             std::cout << std::left << std::setw(column_widths[c]) << results_meta[c].column_name << " ";
@@ -151,10 +147,8 @@ void DBConnection::print_result(std::vector<ColumnMeta>&& results_meta, bool pri
             sepline += " ";
         }
         std::cout << std::endl << sepline << std::endl;
-        SetConsoleTextAttribute(hc, 7);
     }
 
-    SetConsoleTextAttribute(hc, 13);
     for (size_t r = 0, maxr = records.size(); r < maxr; ++r) {
         for (size_t c = 0, max = results_meta.size(); c < max; ++c) {
             switch (results_meta[c].data_type)
@@ -175,7 +169,6 @@ void DBConnection::print_result(std::vector<ColumnMeta>&& results_meta, bool pri
         }
         std::cout << std::endl;
     }
-    SetConsoleTextAttribute(hc, 7);
 
     if (!SQL_SUCCEEDED(SQLCloseCursor(hstmt_))) {
         diag_all();
