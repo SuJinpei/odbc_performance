@@ -94,6 +94,28 @@ MapRules::MapRules(std::string map_file_name)
                 odb_error("map rule:", rule, " expects a value.");
             }
         }
+        else if (rule == "UTF8RAND") {
+            if (std::string len; std::getline(iss, len)) {
+                rules_.push_back(
+                    std::bind(
+                        [](long len) {return std::make_unique<UTF8RandFeeder>(len); },
+                        std::stol(len)));
+            }
+            else {
+                odb_error("map rule:", rule, " expects a value.");
+            }
+        }
+        else if (rule == "GBKRAND") {
+            if (std::string len; std::getline(iss, len)) {
+                rules_.push_back(
+                    std::bind(
+                        [](long len) {return std::make_unique<GBKRandFeeder>(len); },
+                        std::stol(len)));
+            }
+            else {
+                odb_error("map rule:", rule, " expects a value.");
+            }
+        }
         else {
             odb_error("unknown map option:", rule);
         }
@@ -266,4 +288,66 @@ std::string NumericRandFeeder::get()
 {
     std::snprintf(buf_, (prec_ + 3), format_.c_str(), dist_(gen_));
     return std::string(buf_);
+}
+
+UTF8RandFeeder::UTF8RandFeeder(size_t len)
+    :len_(len), dist_{0x3300, 0x9fff}
+{
+}
+
+std::string UTF8RandFeeder::get()
+{
+    std::ostringstream oss;
+    
+    for (int i = 0; i < len_; ++i) {
+        oss << utf8_from_code(dist_(gen_));
+    }
+
+    return oss.str();
+}
+
+std::string UTF8RandFeeder::utf8_from_code(int cp)
+{
+    char c[5] = { 0x00,0x00,0x00,0x00,0x00 };
+    if (cp <= 0x7F) { c[0] = cp; }
+    else if (cp <= 0x7FF) { c[0] = (cp >> 6) + 192; c[1] = (cp & 63) + 128; }
+    else if (0xd800 <= cp && cp <= 0xdfff) {} //invalid block of utf8
+    else if (cp <= 0xFFFF) { c[0] = (cp >> 12) + 224; c[1] = ((cp >> 6) & 63) + 128; c[2] = (cp & 63) + 128; }
+    else if (cp <= 0x10FFFF) { c[0] = (cp >> 18) + 240; c[1] = ((cp >> 12) & 63) + 128; c[2] = ((cp >> 6) & 63) + 128; c[3] = (cp & 63) + 128; }
+    return std::string(c);
+}
+
+GBKRandFeeder::GBKRandFeeder(size_t len)
+    :len_(len), dist_{ 0x0000, 0xffff }
+{
+}
+
+std::string GBKRandFeeder::get()
+{
+    char buf[3] = {};
+
+    short *ps = reinterpret_cast<short*>(buf);
+    *ps = static_cast<short>(dist_(gen_));
+
+    *ps |= 0x8100 | 0x40;
+    if (*ps & 0x7f) {
+        *ps -= 1;
+    }
+
+    if (0xa0 < (unsigned char)buf[1] && (unsigned char)buf[1] < 0xa8) {
+        if (0x39 < (unsigned char)buf[0] && (unsigned char)buf[0] < 0xa1) {
+            buf[1] += 8;
+        }
+    }
+
+    if (0xa0 < (unsigned char)buf[0]) {
+        if (0xa9 < (unsigned char)buf[1] && (unsigned char)buf[1] < 0xb0) {
+            buf[1] += 8;
+        }
+        if (0xf7 < (unsigned char)buf[1]) {
+            buf[1] -= 8;
+        }
+    }
+
+    return std::string(buf);
 }

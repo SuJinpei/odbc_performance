@@ -66,9 +66,32 @@ DataBuffer DBConsumer::consume_data(DataBuffer && data)
         for (auto s : row_status_) {
             console().log_line<ConsoleLog::LINFO>("row status:", s);
         }
-        conn_.diag_hstmt();
+
+        SQLSMALLINT rec_num = 1, len;
+        SQLCHAR state[10];
+        SQLINTEGER error;
+        SQLCHAR message[1024];
+        SQLSMALLINT row_num, col_num;
+
+        SQLRETURN ret = 0;
+        while (SQL_SUCCEEDED(ret = SQLGetDiagRec(SQL_HANDLE_STMT, hstmt_, rec_num, state, &error, message, sizeof(message), &len))) {
+            // figure out error data
+            ret = SQLGetDiagField(SQL_HANDLE_STMT, hstmt_, rec_num, SQL_DIAG_ROW_NUMBER, (SQLPOINTER)&row_num, 0, 0);
+            ret = SQLGetDiagField(SQL_HANDLE_STMT, hstmt_, rec_num, SQL_DIAG_COLUMN_NUMBER, (SQLPOINTER)&col_num, 0, 0);
+
+            console().log_line<ConsoleLog::LERROR>("STATE:", state, ",CODE:", error, ",row:", row_num, ",col:", col_num, ",message:", message);
+            ++rec_num;
+        }
+
         odb_error("SQLExecute load");
     }
+
+    console().log<ConsoleLog::LINFO>("processed rows:", num_processed_rows_, "\n");
+
+    for (auto s : row_status_) {
+        console().log_line<ConsoleLog::LINFO>("row status:", s);
+    }
+    conn_.diag_hstmt();
 
     return std::move(data);
 }

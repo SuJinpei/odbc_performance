@@ -116,6 +116,30 @@ private:
     std::string format_;
 };
 
+// UTF8RAND
+class UTF8RandFeeder : public RandomFeeder {
+public:
+    UTF8RandFeeder(size_t len);
+    std::string get();
+
+    std::string utf8_from_code(int cp);
+
+private:
+    size_t len_;
+    std::uniform_int_distribution<int> dist_;
+};
+
+// GBKRAND
+class GBKRandFeeder : public RandomFeeder {
+public:
+    GBKRandFeeder(size_t len);
+    std::string get();
+
+private:
+    size_t len_;
+    std::uniform_int_distribution<int> dist_;
+};
+
 // MapWorker is thread safe for parallel maping.
 class MapWorker {
 public:

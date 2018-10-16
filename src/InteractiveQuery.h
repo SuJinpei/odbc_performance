@@ -18,6 +18,9 @@ protected:
     std::ostream& prompt(std::ostream& os);
 
 private:
+    void show_table_info(std::string table_name);
+
     std::string prompt_ = "SQL> ";
+    DBConnection conn_;
 };
 #endif
