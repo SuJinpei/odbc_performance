@@ -147,12 +147,38 @@ std::string MapWorker::map(size_t column_num) const
     return map_workers_[column_num]->get();
 }
 
-Feeder::Feeder()
+std::string MapWorker::column_name(size_t column_num) const
+{
+    return map_workers_[column_num]->column_name();
+}
+
+size_t MapWorker::count() const
+{
+    return map_workers_.size();
+}
+
+SQLSMALLINT MapWorker::type(size_t column_num) const
+{
+    return map_workers_.at(column_num)->data_type();
+}
+
+void MapWorker::fill_buffer(size_t col, void * buf, size_t size)
+{
+    map_workers_[col]->fill_buffer(buf, size);
+}
+
+Feeder::Feeder(const std::string& col_name)
+    :col_name_(col_name)
 {
 }
 
 Feeder::~Feeder()
 {
+}
+
+std::string Feeder::column_name()
+{
+    return col_name_;
 }
 
 ConstFeeder::ConstFeeder(const std::string val)
@@ -165,6 +191,17 @@ std::string ConstFeeder::get()
     return value_;
 }
 
+SQLSMALLINT ConstFeeder::data_type()
+{
+    return SQL_C_CHAR;
+}
+
+void ConstFeeder::fill_buffer(void * buf, size_t size)
+{
+    *(SQLLEN*)buf = SQL_NTS;
+    std::strncpy((char*)buf + sizeof(SQLLEN), value_.c_str(), size);
+}
+
 SeqFeeder::SeqFeeder(std::atomic_long& start)
     :next_num_(start)
 {
@@ -173,6 +210,17 @@ SeqFeeder::SeqFeeder(std::atomic_long& start)
 std::string SeqFeeder::get()
 {
     return std::to_string(next_num_++);
+}
+
+SQLSMALLINT SeqFeeder::data_type()
+{
+    return SQL_C_LONG;
+}
+
+void SeqFeeder::fill_buffer(void * buf, size_t size)
+{
+    *(SQLLEN*)buf = 0;
+    *(long*)((char*)buf + sizeof(SQLLEN)) = next_num_++;
 }
 
 IntegerRandFeeder::IntegerRandFeeder(long min, long max)
@@ -185,39 +233,49 @@ std::string IntegerRandFeeder::get()
     return std::to_string(dist(gen_));
 }
 
+SQLSMALLINT IntegerRandFeeder::data_type()
+{
+    return SQL_C_LONG;
+}
+
+void IntegerRandFeeder::fill_buffer(void * buf, size_t size)
+{
+    *(SQLLEN*)buf = 0;
+    *(long*)((char*)buf + sizeof(SQLLEN)) = dist(gen_);
+}
+
 DateRandFeeder::DateRandFeeder(long min_year, long max_year)
-    :dist_year_{min_year, max_year}, dist_month_{1, 12},
-    dist_28_{1, 28}, dist_29_{1, 29}, dist_30_{1, 30}, dist_31_{1, 31}
+    :dist_time_{ [&] {std::tm tm; tm.tm_year = min_year; return std::mktime(&tm); }(),
+                 [&] {std::tm tm; tm.tm_year = max_year + 1; return std::mktime(&tm); }() }
 {
 }
 
 std::string DateRandFeeder::get()
 {
-    int year = dist_year_(gen_);
-    int month = dist_month_(gen_);
-    int day = 0;
-
-    switch (month)
-    {
-    case 2:
-        if ((year % 400 == 0) || (year % 4 == 0 && year % 100 != 0)) { // Leap Year
-            day = dist_29_(gen_);
-        }
-        else {
-            day = dist_28_(gen_);
-        }
-        break;
-    case 1: case 3: case 5: case 7: case 8: case 10: case 12:
-        day = dist_31_(gen_);
-        break;
-    default:
-        day = dist_30_(gen_);
-        break;
-    }
-
     std::ostringstream oss;
-    oss << year << "-" << month << "-" << day;
+    SQL_DATE_STRUCT ds;
+    fill_buffer(&ds, sizeof(ds));
+    oss << ds.year << '-' << ds.month << '-' << ds.day;
     return oss.str();
+}
+
+SQLSMALLINT DateRandFeeder::data_type()
+{
+    return SQL_C_TYPE_DATE;
+}
+
+void DateRandFeeder::fill_buffer(void * buf, size_t size)
+{
+    std::tm tm;
+    time_t t = dist_time_(gen_);
+    gmtime_s(&tm, &t);
+
+    *(SQLLEN*)buf = 0;
+    SQL_DATE_STRUCT& date = *(SQL_DATE_STRUCT*)((char*)buf + sizeof(SQLLEN));
+
+    date.year = static_cast<SQLSMALLINT>(tm.tm_year);
+    date.month = static_cast<SQLSMALLINT>(tm.tm_mon);
+    date.day = static_cast<SQLSMALLINT>(tm.tm_mday);
 }
 
 TimeRandFeeder::TimeRandFeeder()
@@ -232,23 +290,62 @@ std::string TimeRandFeeder::get()
     return oss.str();
 }
 
+SQLSMALLINT TimeRandFeeder::data_type()
+{
+    return SQL_C_TYPE_DATE;
+}
+
+void TimeRandFeeder::fill_buffer(void * buf, size_t size)
+{
+    *(SQLLEN*)buf = 0;
+    SQL_TIME_STRUCT& ts = *(SQL_TIME_STRUCT*)((char*)buf + sizeof(SQLLEN));
+    ts.hour = (SQLSMALLINT)dist_hour_(gen_);
+    ts.minute = (SQLSMALLINT)dist_minute_(gen_);
+    ts.second = (SQLSMALLINT)dist_second_(gen_);
+}
+
+TimeStampRandFeeder::TimeStampRandFeeder()
+    :dist_{0, std::time(nullptr)}
+{
+}
+
 std::string TimeStampRandFeeder::get()
 {
     std::ostringstream oss;
-
-    std::uniform_int_distribution<time_t> dist{ 0, std::time(nullptr) };
-    time_t rand_time = dist(gen_);
+    time_t rand_time = dist_(gen_);
     std::tm& tm = *std::localtime(&rand_time);
     oss << std::put_time(&tm, "%F %T");
 
     return oss.str();
 }
 
-CharRandFeeder::CharRandFeeder(size_t len)
-    :length_(len)
+SQLSMALLINT TimeStampRandFeeder::data_type()
 {
-    chars_ = "`1234567890-=qwertyuiop[]asdfghjkl;'\\zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}ASDFGHJKL:\"|ZXCVBNM<>?";
-    dist_ = std::uniform_int_distribution<size_t>{ 0, chars_.size() };
+    return SQL_C_TYPE_TIMESTAMP;
+}
+
+void TimeStampRandFeeder::fill_buffer(void * buf, size_t size)
+{
+    std::tm tm;
+    time_t t = dist_(gen_);
+    localtime_s(&tm, &t);
+
+    *(SQLLEN*)buf = 0;
+    SQL_TIMESTAMP_STRUCT& tms = *(SQL_TIMESTAMP_STRUCT*)((char*)buf + sizeof(SQLLEN));
+    tms.year = tm.tm_year + 1900;
+    tms.month = tm.tm_mon;
+    tms.day = tm.tm_mday;
+    tms.hour = tm.tm_hour;
+    tms.minute = tm.tm_min;
+    tms.second = tm.tm_sec;
+}
+
+CharRandFeeder::CharRandFeeder(size_t len)
+    :length_{ len },
+    chars_{ "`1234567890-=qwertyuiop[]asdfghjkl;'\\zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}ASDFGHJKL:\"|ZXCVBNM<>?" },
+    chars_len_{chars_.size()},
+    dist_{0, chars_len_ - 1}
+{
 }
 
 std::string CharRandFeeder::get()
@@ -256,38 +353,56 @@ std::string CharRandFeeder::get()
     std::string result;
     std::generate_n(std::back_inserter(result), length_, [&] { return chars_[dist_(gen_)]; });
 
-    return result;
+    return std::move(result);
+}
+
+SQLSMALLINT CharRandFeeder::data_type()
+{
+    return SQL_C_CHAR;
+}
+
+void CharRandFeeder::fill_buffer(void * buf, size_t size)
+{
+    *(SQLLEN*)buf = SQL_NTS;
+    char *p = (char*)buf + sizeof(SQLLEN);
+
+    size_t rnd = 0;
+    for (int i = 0; i < length_; ++i) {
+        if (i % 60 == 0)
+            rnd = gen_();
+        else
+            rnd = rnd >> 1;
+        *p++ = chars_[rnd % chars_len_];
+    }
+    *p = '\0';
 }
 
 NumericRandFeeder::NumericRandFeeder(size_t precission, size_t scale)
-    :prec_{precission}, scale_{scale}
+    :dist_{0, static_cast<size_t>(std::pow(10, precission) - 1)},
+     scale_div_{static_cast<size_t>(std::pow(10, scale))}
 {
-    double max = 1.0;
-    for (size_t i = 0; i < precission - scale; ++i) {
-        max *= 10;
-    }
-
-
-    double delta = 5.0 / std::pow(10, (scale + 1));
-    dist_ = std::uniform_real_distribution<double>{ -max + delta, max - delta };
-    buf_ = new char[precission + 3];
-
-    std::ostringstream oss;
-    oss << "%." << scale << "f";
-    format_ = oss.str();
-}
-
-NumericRandFeeder::~NumericRandFeeder()
-{
-    if (buf_) {
-        delete buf_;
-    }
 }
 
 std::string NumericRandFeeder::get()
 {
-    std::snprintf(buf_, (prec_ + 3), format_.c_str(), dist_(gen_));
-    return std::string(buf_);
+    double d;
+    fill_buffer(&d, 0);
+    oss_.str("");
+    oss_ << d;
+    return oss_.str();;
+}
+
+SQLSMALLINT NumericRandFeeder::data_type()
+{
+    return SQL_C_DOUBLE;
+}
+
+void NumericRandFeeder::fill_buffer(void * buf, size_t size)
+{
+    *(SQLLEN*)buf = 0;
+    double& d = *(double*)((char*)buf + sizeof(SQLLEN));
+    d = dist_(gen_) * 1.0;
+    d /= scale_div_;
 }
 
 UTF8RandFeeder::UTF8RandFeeder(size_t len)
@@ -300,21 +415,37 @@ std::string UTF8RandFeeder::get()
     std::ostringstream oss;
     
     for (int i = 0; i < len_; ++i) {
-        oss << utf8_from_code(dist_(gen_));
+        char buf[5] = {};
+        oss << utf8_from_code((int)dist_(gen_), buf);
     }
 
     return oss.str();
 }
 
-std::string UTF8RandFeeder::utf8_from_code(int cp)
+SQLSMALLINT UTF8RandFeeder::data_type()
 {
-    char c[5] = { 0x00,0x00,0x00,0x00,0x00 };
-    if (cp <= 0x7F) { c[0] = cp; }
-    else if (cp <= 0x7FF) { c[0] = (cp >> 6) + 192; c[1] = (cp & 63) + 128; }
+    return SQL_C_CHAR;
+}
+
+void UTF8RandFeeder::fill_buffer(void * buf, size_t size)
+{
+    *(SQLLEN*)buf = 0;
+    char *p = (char*)buf + sizeof(SQLLEN);
+    for (int i = 0; i < len_; ++i) {
+        p = utf8_from_code((int)dist_(gen_), p);
+    }
+    *p = '\0';
+}
+
+// caller should ensure at least 4 bytes provided.
+char* UTF8RandFeeder::utf8_from_code(int cp, char *buf)
+{
+    if (cp <= 0x7F) { *buf++ = cp; }
+    else if (cp <= 0x7FF) { *buf++ = (cp >> 6) + 192; *buf++ = (cp & 63) + 128; }
     else if (0xd800 <= cp && cp <= 0xdfff) {} //invalid block of utf8
-    else if (cp <= 0xFFFF) { c[0] = (cp >> 12) + 224; c[1] = ((cp >> 6) & 63) + 128; c[2] = (cp & 63) + 128; }
-    else if (cp <= 0x10FFFF) { c[0] = (cp >> 18) + 240; c[1] = ((cp >> 12) & 63) + 128; c[2] = ((cp >> 6) & 63) + 128; c[3] = (cp & 63) + 128; }
-    return std::string(c);
+    else if (cp <= 0xFFFF) { *buf++ = (cp >> 12) + 224; *buf++ = ((cp >> 6) & 63) + 128; *buf++ = (cp & 63) + 128; }
+    else if (cp <= 0x10FFFF) { *buf++ = (cp >> 18) + 240; *buf++ = ((cp >> 12) & 63) + 128; *buf++ = ((cp >> 6) & 63) + 128; *buf++ = (cp & 63) + 128; }
+    return buf;
 }
 
 GBKRandFeeder::GBKRandFeeder(size_t len)
@@ -325,7 +456,30 @@ GBKRandFeeder::GBKRandFeeder(size_t len)
 std::string GBKRandFeeder::get()
 {
     char buf[3] = {};
+    std::ostringstream oss;
+    for (int i = 0; i < len_; ++i) {
+        oss << rand_one_gbk_char(buf);
+    }
+    return oss.str();
+}
 
+SQLSMALLINT GBKRandFeeder::data_type()
+{
+    return SQL_C_CHAR;
+}
+
+void GBKRandFeeder::fill_buffer(void * buf, size_t size)
+{
+    *(SQLLEN*)buf = 0;
+    char *p = (char*)buf + sizeof(SQLLEN);
+    for (int i = 0; i < len_; ++i,p+=2) {
+        rand_one_gbk_char(p);
+    }
+    *p = '\0';
+}
+
+char * GBKRandFeeder::rand_one_gbk_char(char * buf)
+{
     short *ps = reinterpret_cast<short*>(buf);
     *ps = static_cast<short>(dist_(gen_));
 
@@ -348,6 +502,16 @@ std::string GBKRandFeeder::get()
             buf[1] -= 8;
         }
     }
+    return buf;
+}
 
-    return std::string(buf);
+FastUniformIntDistribution::FastUniformIntDistribution(FastUniformIntDistribution::result_type min, 
+    FastUniformIntDistribution::result_type max)
+    :dist_(max - min + 1)
+{
+}
+
+RandomFeeder::RandomFeeder()
+    :gen_(std::random_device()())
+{
 }

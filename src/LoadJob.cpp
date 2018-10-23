@@ -55,7 +55,7 @@ LoadJob::LoadJob()
         "- parallel to 1.\n"
         "- rows to 1.\n"
         "- ifempty to false.\n"
-        "- truncate to false.", false, false);
+        "- truncate to false.", false, false, true, "false");
 
     supports_options_.set_option_info("bpc", "Bytes allocated in the ODBC buffer for each (non wide) CHAR / VARCHAR column length unit. (Default: 1)", true, false);
     supports_options_.set_option_info("bpwc", "Bytes allocated in the ODBC buffer for each (wide) CHAR / VARCHAR column length unit. (Default: 4)", true, false);
@@ -126,11 +126,17 @@ void LoadJob::init(const Options & runer_option, std::string command)
     oss << "DSN=" << options_.option_value("-d") << ";UID=" << options_.option_value("-u") << ";PWD=" << options_.option_value("-p");
 
     std::vector<std::future<DBConnection>> fc;
-    for (size_t n = 0; n < parallel_producer_num_; ++n) {
+    for (size_t n = 0; n < parallel_consumer_num_; ++n) {
         fc.push_back(std::async([&] {
             return DBConnection(oss.str());
         }));
     }
+
+    for (size_t n = 0; n < parallel_producer_num_; ++n) {
+        map_workers_.push_back(map_rules_ptr_->create_map_worker());
+    }
+
+    initialize_producer_meta();
 
     for (auto& f : fc) {
         db_connections_.push_back(f.get());
@@ -139,7 +145,7 @@ void LoadJob::init(const Options & runer_option, std::string command)
 
 DataProducer * LoadJob::create_producer(size_t id)
 {
-    return new MapDataProducer{options_, map_rules_ptr_->create_map_worker()};
+    return new MapDataProducer{options_, std::move(map_workers_[id])};
 }
 
 DataConsumer * LoadJob::create_consumer(size_t id)
@@ -162,18 +168,11 @@ void LoadJob::initialize_producer_buffer()
     DataBuffer databuffer;
     databuffer.set_row_count(rows_ < produce_maxs_[0] ? rows_ : produce_maxs_[0]);
 
-    for (auto& cm : consumer_meta_.col_meta) {
-        DataType buffer_data_type;
+    if (producer_meta_.col_meta.size() != consumer_meta_.col_meta.size())
+        odb_error("source column not match the target column.");
 
-        switch (cm.data_type)
-        {
-        //case SQL_INTEGER:
-        //    buffer_data_type = SQL_C_LONG; break;
-        default:
-            buffer_data_type = SQL_C_CHAR; break;
-        }
-
-        databuffer.append(buffer_data_type, cm.display_size + 1);
+    for (size_t i = 0, max = consumer_meta_.col_meta.size(); i < max; ++i) {
+        databuffer.append(producer_meta_.col_meta[i].data_type, consumer_meta_.col_meta[i].display_size + 1);
     }
 
     databuffer.adjust_buffer();
@@ -219,4 +218,13 @@ void LoadJob::initialize_consumer_meta()
     consumer_meta_.load_query = std::move(oss.str());
     consumer_meta_.buffer_rows = producers_data_buffer_.front().row_count();
     consumer_meta_.buffer_width = producers_data_buffer_.front().row_width();
+}
+
+void LoadJob::initialize_producer_meta()
+{
+    producer_meta_.col_meta.resize(map_workers_[0].count());
+    for (size_t i = 0, mx = map_workers_[0].count(); i <mx; ++i) {
+        producer_meta_.col_meta[i].data_type = map_workers_[0].type(i);
+        producer_meta_.col_meta[i].column_name = map_workers_[0].column_name(i);
+    }
 }

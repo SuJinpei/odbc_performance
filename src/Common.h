@@ -7,7 +7,13 @@
 
 //#include <gsl/gsl>
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 #include "error.h"
+
+#include <sqlext.h>
 
 #endif // !COMMON_H
 

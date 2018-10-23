@@ -48,8 +48,10 @@ void ETLJob::init(const Options & runer_option, std::string command)
 
     // rows
     rows_ = std::stoul(options_.option_value("rows"));
-
     max_ = std::stoull(options_.option_value("max"));
+
+    pseudo_ = options_.option_value("pseudo") == "true";
+    show_ = options_.option_value("show") == "true";
 }
 
 /*************************************************************
@@ -166,7 +168,10 @@ void ETLJob::run_consumer(size_t id)
             consumers_data_buffer_.pop();
         }
 
-        if (options_.option_value("pseudo") != "true")
+        if (show_)
+            console().log<ConsoleLog::LINFO>(data.dump());
+
+        if (!pseudo_)
             data = consumer->consume_data(std::move(data));
 
         consum_totals_[id] += data.row_count();

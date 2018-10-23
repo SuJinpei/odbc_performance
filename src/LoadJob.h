@@ -30,9 +30,13 @@ protected:
 
     void initialize_consumer_meta();
 
+    void initialize_producer_meta();
+
 private:
     std::unique_ptr<MapRules> map_rules_ptr_;
     std::vector<DBConnection> db_connections_;
+    std::vector<MapWorker> map_workers_;
     DBConsumerMeta consumer_meta_;
+    DBConsumerMeta producer_meta_;
 };
 #endif
