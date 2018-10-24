@@ -15,15 +15,7 @@ DataBuffer MapDataProducer::produce_data(DataBuffer && databuffer)
 
     for (size_t r = 0; r < row_count; ++r) {
         for (size_t c = 0; c < column_count; ++c) {
-            std::string temp = map_worker_.map(c);
-
-            if (temp.length() > databuffer.cell_body_capacity(c)) {
-                odb_error("contents too long");
-            }
-
-            strcpy(databuffer.cell_body_address(r, c), temp.c_str());
-            //databuffer.cell_body_length_ref(r, c) = temp.length();
-            databuffer.cell_body_length_ref(r, c) = SQL_NTS;
+            map_worker_.fill_buffer(c, databuffer.cell_address(r, c), databuffer.cell_body_capacity(c));
         }
     }
 

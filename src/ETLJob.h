@@ -59,6 +59,8 @@ protected:
 
     bool producer_buffer_initialized_ = false;
     bool is_job_abort = false;
+    bool pseudo_ = false;
+    bool show_ = false;
 
     std::mutex mutex_producer_buffer_;
     std::condition_variable cond_producer_buffer_not_full;

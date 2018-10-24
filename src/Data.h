@@ -42,6 +42,7 @@ public:
 
     SQLLEN& cell_body_length_ref(size_t row, size_t column);
     Address cell_body_address(size_t row, size_t column);
+    Address cell_address(size_t row, size_t column);
     size_t cell_body_capacity(size_t column);
     DataType cell_data_type(size_t column);
 

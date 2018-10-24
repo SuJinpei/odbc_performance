@@ -29,8 +29,7 @@ public:
         void set_color(int i);
     };
 
-    ConsoleLog(const LogLevel lv = LERROR)
-        :_buffer{ std::cout }, logLevel{ lv }{}
+    ConsoleLog(const LogLevel lv = LERROR);
 
     template<ConsoleLog::LogLevel lv, typename... Args>
     void log(Args const&... args) {

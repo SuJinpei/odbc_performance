@@ -1,5 +1,7 @@
 #include "ETLJob.h"
 
+#include <atomic>
+
 ETLJob::ETLJob()
 {
     supports_options_.set_option_info("parallel", "Number of loading threads. odb uses:\n"
@@ -48,8 +50,10 @@ void ETLJob::init(const Options & runer_option, std::string command)
 
     // rows
     rows_ = std::stoul(options_.option_value("rows"));
-
     max_ = std::stoull(options_.option_value("max"));
+
+    pseudo_ = options_.option_value("pseudo") == "true";
+    show_ = options_.option_value("show") == "true";
 }
 
 /*************************************************************
@@ -79,16 +83,16 @@ void ETLJob::run()
 
     initialize_producer_buffer();
 
-    for (size_t i = 0; i < parallel_producer_num_; ++i) {
+    for (std::atomic_size_t i{0}; i < parallel_producer_num_; ++i) {
         producer_threads.push_back(std::thread{ [this](size_t id, size_t thread_max) {
             this->run_producer(id, thread_max);
-        }, i, produce_maxs_[i] });
+                                                }, i.load(), produce_maxs_[i.load()] });
     }
 
-    for (size_t i = 0; i < parallel_consumer_num_; ++i) {
+    for (std::atomic_size_t i{0}; i < parallel_consumer_num_; ++i) {
         consumer_threads.push_back(std::thread{ [this](size_t id) {
             this->run_consumer(id);
-        }, i });
+                                                }, i.load() });
     }
 
     monitor_ptr_->start();
@@ -166,7 +170,10 @@ void ETLJob::run_consumer(size_t id)
             consumers_data_buffer_.pop();
         }
 
-        if (options_.option_value("pseudo") != "true")
+        if (show_)
+            console().log<ConsoleLog::LINFO>(data.dump());
+
+        if (!pseudo_)
             data = consumer->consume_data(std::move(data));
 
         consum_totals_[id] += data.row_count();
