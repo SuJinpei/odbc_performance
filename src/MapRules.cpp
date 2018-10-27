@@ -245,8 +245,8 @@ void IntegerRandFeeder::fill_buffer(void * buf, size_t size)
 }
 
 DateRandFeeder::DateRandFeeder(long min_year, long max_year)
-    :dist_time_{ [&] {std::tm tm; tm.tm_year = min_year; return std::mktime(&tm); }(),
-                 [&] {std::tm tm; tm.tm_year = max_year + 1; return std::mktime(&tm); }() }
+  :dist_time_{ [&] {std::tm tm{}; tm.tm_year = min_year - 1900; time_t t = std::mktime(&tm); return t > 0 ? t : 0;}(),
+	       [&] {std::tm tm{}; tm.tm_year = max_year + 1 - 1900; time_t t = std::mktime(&tm); return t > 0 ? t : 0;}() }
 {
 }
 
@@ -269,11 +269,10 @@ void DateRandFeeder::fill_buffer(void * buf, size_t size)
     std::tm tm;
     time_t t = dist_time_(gen_);
     localtime_s(&tm, &t);
-
     *(SQLLEN*)buf = 0;
     SQL_DATE_STRUCT& date = *(SQL_DATE_STRUCT*)((char*)buf + sizeof(SQLLEN));
 
-    date.year = static_cast<SQLSMALLINT>(tm.tm_year);
+    date.year = static_cast<SQLSMALLINT>(tm.tm_year) + 1900;
     date.month = static_cast<SQLSMALLINT>(tm.tm_mon);
     date.day = static_cast<SQLSMALLINT>(tm.tm_mday);
 }

@@ -1,6 +1,7 @@
 #include "DBConsumer.h"
 
 #include <sstream>
+#include <regex>
 
 DBConsumer::DBConsumer(Options& options, DBConnection& conn, const DBConsumerMeta& meta)
     :DataConsumer(options), conn_(conn), meta_(meta)
@@ -59,14 +60,11 @@ DataBuffer DBConsumer::consume_data(DataBuffer && data)
         }
     }
 
+    if (data.dump_cell(0, 0) == "0,") {
+      std::cerr << "how this happen?\n";
+    }
+
     if (SQLExecute(hstmt_) != SQL_SUCCESS) {
-        console().log<ConsoleLog::LDEBUG>(data.dump());
-        console().log<ConsoleLog::LINFO>("processed rows:", num_processed_rows_, "\n");
-
-        for (auto s : row_status_) {
-            console().log_line<ConsoleLog::LINFO>("row status:", s);
-        }
-
         SQLSMALLINT rec_num = 1, len;
         SQLCHAR state[10];
         SQLINTEGER error;
@@ -80,17 +78,27 @@ DataBuffer DBConsumer::consume_data(DataBuffer && data)
             ret = SQLGetDiagField(SQL_HANDLE_STMT, hstmt_, rec_num, SQL_DIAG_COLUMN_NUMBER, (SQLPOINTER)&col_num, 0, 0);
 
             console().log_line<ConsoleLog::LERROR>("STATE:", state, ",CODE:", error, ",row:", row_num, ",col:", col_num, ",message:", message);
+
+	    std::regex reg{"Row: \\d+ Column: \\d+"};
+	    std::smatch matches;
+	    std::string target{(char*)message};
+	    if (std::regex_search(target, matches, reg)) {
+	      std::istringstream iss{matches[0].str()};
+	      std::string temp;
+	      iss >> temp >> temp;
+	      row_num = std::stoi(temp);
+	      iss >> temp >> temp;
+	      col_num = std::stoi(temp);
+	    }
+
+	    std::cerr << "FAILED ROW:" << row_num << "\n    " << data.dump(row_num - 1);
+	    std::cerr << "BAD DATA:"  << data.dump_cell(row_num - 1, col_num - 1) << std::endl;
             ++rec_num;
         }
 
         odb_error("SQLExecute load");
     }
 
-    console().log<ConsoleLog::LINFO>("processed rows:", num_processed_rows_, "\n");
-
-    for (auto s : row_status_) {
-        console().log_line<ConsoleLog::LINFO>("row status:", s);
-    }
     conn_.diag_hstmt();
 
     return std::move(data);

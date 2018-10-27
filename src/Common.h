@@ -17,7 +17,7 @@
 #include <time.h>
 
 #ifndef _WIN32
-#define localtime_s(tm, t) localtime_r(t, tm)
+tm* localtime_s(tm* stm, time_t *t);
 #endif
 
 #endif // !COMMON_H

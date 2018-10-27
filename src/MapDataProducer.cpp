@@ -15,7 +15,7 @@ DataBuffer MapDataProducer::produce_data(DataBuffer && databuffer)
 
     for (size_t r = 0; r < row_count; ++r) {
         for (size_t c = 0; c < column_count; ++c) {
-            map_worker_.fill_buffer(c, databuffer.cell_address(r, c), databuffer.cell_body_capacity(c));
+	    map_worker_.fill_buffer(c, databuffer.cell_address(r, c), databuffer.cell_body_capacity(c));
         }
     }
 

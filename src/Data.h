@@ -48,6 +48,8 @@ public:
 
     void adjust_buffer();
 
+    std::string dump_cell(size_t r, size_t c);
+    std::string dump(size_t r);
     std::string dump();
 
 private:
