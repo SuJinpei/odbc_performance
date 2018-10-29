@@ -32,6 +32,10 @@ protected:
 
     void initialize_producer_meta();
 
+    std::string get_meta_query();
+
+    std::string get_load_query();
+
 private:
     std::unique_ptr<MapRules> map_rules_ptr_;
     std::vector<DBConnection> db_connections_;

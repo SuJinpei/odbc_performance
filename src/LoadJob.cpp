@@ -107,6 +107,9 @@ LoadJob::LoadJob()
     supports_options_.set_option_info("xmldump", "odb does not load the XML file content. Instead, XML\n"
         "attribute / tage names are printed to standard output so you can\n"
         "check what is going to be loaded.", false, false);
+
+    supports_options_.set_option_info("sql", "odb allow user customize load sql.", true);
+    supports_options_.set_option_info("columns", "odb allow user specify columns to load", true);
 }
 
 std::string LoadJob::name() const
@@ -155,9 +158,8 @@ DataConsumer * LoadJob::create_consumer(size_t id)
 
 void LoadJob::initialize_producer_buffer()
 {
-    std::ostringstream oss;
-    oss << "SELECT * FROM " << options_.option_value("tgt") << " WHERE 1=0";
-    db_connections_[0].execute_direct(oss.str());
+    db_connections_[0].execute_direct(get_meta_query());
+
     consumer_meta_.col_meta = db_connections_[0].get_results_meta();
 
     if (!SQL_SUCCEEDED(SQLFreeStmt(db_connections_[0].hstmt(), SQL_CLOSE))) {
@@ -188,34 +190,9 @@ void LoadJob::initialize_producer_buffer()
 
 void LoadJob::initialize_consumer_meta()
 {
-    // construct load query
-    std::ostringstream oss;
-    std::string loadcmd = options_.option_value("loadcmd");
+    consumer_meta_.load_query = std::move(get_load_query());
+    console().log_line<ConsoleLog::LDEBUG>("load query: ", consumer_meta_.load_query);
 
-    if (loadcmd == "IN") {
-        oss << "INSERT ";
-    }
-    else if (loadcmd == "UP") {
-        oss << "UPSERT ";
-    }
-    else if (loadcmd == "UL") {
-        oss << "UPSERT USING LOAD ";
-    }
-    else {
-        oss << loadcmd << " ";
-    }
-
-    oss << "INTO " << options_.option_value("tgt") << " VALUES(";
-
-    for (const auto& cm : consumer_meta_.col_meta) {
-        oss << "?,";
-    }
-
-    oss.seekp(-1, oss.cur);
-    oss << ")";
-
-    console().log_line<ConsoleLog::LDEBUG>("load query: ", oss.str());
-    consumer_meta_.load_query = std::move(oss.str());
     consumer_meta_.buffer_rows = producers_data_buffer_.front().row_count();
     consumer_meta_.buffer_width = producers_data_buffer_.front().row_width();
 }
@@ -226,5 +203,54 @@ void LoadJob::initialize_producer_meta()
     for (size_t i = 0, mx = map_workers_[0].count(); i <mx; ++i) {
         producer_meta_.col_meta[i].data_type = map_workers_[0].type(i);
         producer_meta_.col_meta[i].column_name = map_workers_[0].column_name(i);
+    }
+}
+
+std::string LoadJob::get_meta_query()
+{
+    std::ostringstream oss;
+    if (options_.option_value("columns").empty()) {
+        oss << "SELECT * FROM " << options_.option_value("tgt") << " WHERE 1=0";
+    }
+    else {
+        oss << "SELECT " << options_.option_value("columns") << " FROM " << options_.option_value("tgt") << " WHERE 1=0";
+    }
+
+    return oss.str();
+}
+
+std::string LoadJob::get_load_query()
+{
+    std::ostringstream oss;
+
+    if (options_.option_value("sql").empty()) {
+        std::string loadcmd = options_.option_value("loadcmd");
+
+        if (loadcmd == "IN") {
+            oss << "INSERT ";
+        }
+        else if (loadcmd == "UP") {
+            oss << "UPSERT ";
+        }
+        else if (loadcmd == "UL") {
+            oss << "UPSERT USING LOAD ";
+        }
+        else {
+            oss << loadcmd << " ";
+        }
+
+        oss << "INTO " << options_.option_value("tgt") << " VALUES(";
+
+        for (const auto& cm : consumer_meta_.col_meta) {
+            oss << "?,";
+        }
+
+        oss.seekp(-1, oss.cur);
+        oss << ")";
+
+        return oss.str();
+    }
+    else {
+        return options_.option_value("sql");
     }
 }

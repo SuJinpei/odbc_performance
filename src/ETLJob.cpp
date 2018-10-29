@@ -86,13 +86,15 @@ void ETLJob::run()
     for (std::atomic_size_t i{0}; i < parallel_producer_num_; ++i) {
         producer_threads.push_back(std::thread{ [this](size_t id, size_t thread_max) {
             this->run_producer(id, thread_max);
-                                                }, i.load(), produce_maxs_[i.load()] });
+            },
+            i.load(), produce_maxs_[i.load()] });
     }
 
     for (std::atomic_size_t i{0}; i < parallel_consumer_num_; ++i) {
         consumer_threads.push_back(std::thread{ [this](size_t id) {
             this->run_consumer(id);
-                                                }, i.load() });
+        }, 
+        i.load() });
     }
 
     monitor_ptr_->start();
