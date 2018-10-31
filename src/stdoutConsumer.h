@@ -11,6 +11,7 @@ public:
     DataBuffer consume_data(DataBuffer&& data) override;
 
 private:
-    char sep;
+    char field_sep;
+    char rec_sep;
 };
 #endif
