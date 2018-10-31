@@ -138,66 +138,95 @@ void DataBuffer::adjust_buffer()
     buffer_size_ = expects_size;
 }
 
-std::string DataBuffer::dump_cell(size_t r, size_t c) {
+std::string DataBuffer::dump_cell(size_t r, size_t c, bool tag) {
   std::ostringstream oss;
 
   switch (meta_[c].data_type)
     {
     case SQL_C_CHAR:
     case SQL_C_WCHAR:
-      oss << "[s," << cell_body_length_ref(r, c) << "]" << "\"" << cell_body_address(r, c) << "\"";
-      break;
+        if (tag)
+            oss << "[s," << cell_body_length_ref(r, c) << "]" << "\"" << cell_body_address(r, c) << "\"";
+        else
+            oss << cell_body_address(r, c);
+        break;
     case SQL_C_SHORT:
-      oss << "[hd," << cell_body_length_ref(r, c) << "]" << *(short*)cell_body_address(r, c);
-      break;
+        if (tag)
+            oss << "[hd," << cell_body_length_ref(r, c) << "]";
+        oss << *(short*)cell_body_address(r, c);
+        break;
     case SQL_C_USHORT:
-      oss << "[hud," << cell_body_length_ref(r, c) << "]" << *(unsigned short*)cell_body_address(r, c);
-      break;
+        if (tag)
+            oss << "[hud," << cell_body_length_ref(r, c) << "]";
+        oss << *(unsigned short*)cell_body_address(r, c);
+        break;
     case SQL_C_LONG:
     case SQL_C_SLONG:
-      oss << "[ld," << cell_body_length_ref(r, c) << "]" << *(long*)cell_body_address(r, c);
-      break;
+        if (tag)
+            oss << "[ld," << cell_body_length_ref(r, c) << "]";
+        oss << *(long*)cell_body_address(r, c);
+        break;
     case SQL_C_ULONG:
-      oss << "[lud," << cell_body_length_ref(r, c) << "]" << *(unsigned long*)cell_body_address(r, c);
-      break;
+        if (tag)
+            oss << "[lud," << cell_body_length_ref(r, c) << "]";
+        oss << *(unsigned long*)cell_body_address(r, c);
+        break;
     case SQL_C_FLOAT:
-      oss << "[f," << cell_body_length_ref(r, c) << "]" << *(float *)cell_body_address(r, c);
-      break;
+        if (tag)
+            oss << "[f," << cell_body_length_ref(r, c) << "]";
+        oss << *(float *)cell_body_address(r, c);
+        break;
     case SQL_C_DOUBLE:
-      oss << "[lf," << cell_body_length_ref(r, c) << "]" << *(double*)cell_body_address(r, c);
-      break;
+        if (tag)
+            oss << "[lf," << cell_body_length_ref(r, c) << "]";
+        oss << *(double*)cell_body_address(r, c);
+        break;
     case SQL_C_BIT:
-      oss << "[b," << cell_body_length_ref(r, c) << "]" << *(char*)cell_body_address(r, c);
-      break;
+        if (tag)
+            oss << "[b," << cell_body_length_ref(r, c) << "]";
+        oss << *(char*)cell_body_address(r, c);
+        break;
     case SQL_C_STINYINT:
-      oss << "[hhd," << cell_body_length_ref(r, c) << "]" << *(char*)cell_body_address(r, c);
-      break;
+        if (tag)
+            oss << "[hhd," << cell_body_length_ref(r, c) << "]";
+        oss << *(char*)cell_body_address(r, c);
+        break;
     case SQL_C_UTINYINT:
-      oss << "[hhud," << cell_body_length_ref(r, c) << "]" << *(unsigned short*)cell_body_address(r, c);
-      break;
+        if (tag)
+            oss << "[hhud," << cell_body_length_ref(r, c) << "]";
+        oss << *(unsigned short*)cell_body_address(r, c);
+        break;
     case SQL_C_UBIGINT:
-      oss << "[lld," << cell_body_length_ref(r, c) << "]" << *(long long*)cell_body_address(r, c);
+        if (tag)
+            oss << "[lld," << cell_body_length_ref(r, c) << "]";
+        oss << *(long long*)cell_body_address(r, c);
       break;
     case SQL_C_BINARY:
       oss << "[B," << cell_body_length_ref(r, c) << "][BINARY]" ;
       break;
     case SQL_C_TYPE_DATE:
       {
-	SQL_DATE_STRUCT& date = *(SQL_DATE_STRUCT*)cell_body_address(r, c);
-	oss << "[dt," << cell_body_length_ref(r, c) << "]" << date.year << '-' << date.month << '-' << date.day;
+	    SQL_DATE_STRUCT& date = *(SQL_DATE_STRUCT*)cell_body_address(r, c);
+        if (tag)
+            oss << "[dt," << cell_body_length_ref(r, c) << "]";
+        oss << date.year << '-' << date.month << '-' << date.day;
       }
       break;
     case SQL_C_TYPE_TIME:
       {
-	SQL_TIME_STRUCT& time = *(SQL_TIME_STRUCT*)cell_body_address(r, c);
-	oss << "[tm," << cell_body_length_ref(r, c) << "]" << time.hour << ':' << time.minute << ':' << time.second;
+	    SQL_TIME_STRUCT& time = *(SQL_TIME_STRUCT*)cell_body_address(r, c);
+        if (tag)
+            oss << "[tm," << cell_body_length_ref(r, c) << "]";
+        oss << time.hour << ':' << time.minute << ':' << time.second;
       }
       break;
     case SQL_C_TYPE_TIMESTAMP:
       {
-	SQL_TIMESTAMP_STRUCT& ts = *(SQL_TIMESTAMP_STRUCT*)cell_body_address(r, c);
-	oss << "[ts," << cell_body_length_ref(r, c) << "]" << ts.year << '-' << ts.month << '-' << ts.day
-	    << ' ' << ts.hour << ':' << ts.minute << ':' << ts.second << ',';
+	    SQL_TIMESTAMP_STRUCT& ts = *(SQL_TIMESTAMP_STRUCT*)cell_body_address(r, c);
+        if (tag)
+            oss << "[ts," << cell_body_length_ref(r, c) << "]";
+        oss << ts.year << '-' << ts.month << '-' << ts.day
+	        << ' ' << ts.hour << ':' << ts.minute << ':' << ts.second << ',';
       }
       break;
     default:
