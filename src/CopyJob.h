@@ -36,5 +36,6 @@ private:
     std::vector<DBConnection> producer_connections_;
     std::vector<DBConnection> consumer_connections_;
     DBConsumerMeta consumer_meta_;
+    DBConsumerMeta producer_meta_;
 };
 #endif

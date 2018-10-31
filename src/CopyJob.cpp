@@ -76,7 +76,7 @@ void CopyJob::init(const Options & runer_option, std::string command)
 
 DataProducer * CopyJob::create_producer(size_t id)
 {
-    return new DBProducer{options_, producer_connections_[id]};
+    return new DBProducer{options_, producer_connections_[id], producer_meta_};
 }
 
 DataConsumer * CopyJob::create_consumer(size_t id)

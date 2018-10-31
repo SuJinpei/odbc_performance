@@ -1,7 +1,7 @@
 #include "ConsoleLog.h"
 
 ConsoleLog::ConsoleLog(const LogLevel lv)
-  :_buffer{std::cout}, logLevel{lv}{
+  :_buffer{std::cerr}, logLevel{lv}{
   _buffer.imbue(std::locale(""));
 }
 

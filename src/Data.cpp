@@ -140,56 +140,57 @@ void DataBuffer::adjust_buffer()
 
 std::string DataBuffer::dump_cell(size_t r, size_t c) {
   std::ostringstream oss;
+
   switch (meta_[c].data_type)
     {
     case SQL_C_CHAR:
     case SQL_C_WCHAR:
-      oss << "[s," << cell_body_length_ref(r, c) << "]" << "\"" << cell_body_address(r, c) << "\",";
+      oss << "[s," << cell_body_length_ref(r, c) << "]" << "\"" << cell_body_address(r, c) << "\"";
       break;
     case SQL_C_SHORT:
-      oss << "[hd," << cell_body_length_ref(r, c) << "]" << *(short*)cell_body_address(r, c) << ",";
+      oss << "[hd," << cell_body_length_ref(r, c) << "]" << *(short*)cell_body_address(r, c);
       break;
     case SQL_C_USHORT:
-      oss << "[hud," << cell_body_length_ref(r, c) << "]" << *(unsigned short*)cell_body_address(r, c) << ",";
+      oss << "[hud," << cell_body_length_ref(r, c) << "]" << *(unsigned short*)cell_body_address(r, c);
       break;
     case SQL_C_LONG:
     case SQL_C_SLONG:
-      oss << "[ld," << cell_body_length_ref(r, c) << "]" << *(long*)cell_body_address(r, c) << ",";
+      oss << "[ld," << cell_body_length_ref(r, c) << "]" << *(long*)cell_body_address(r, c);
       break;
     case SQL_C_ULONG:
-      oss << "[lud," << cell_body_length_ref(r, c) << "]" << *(unsigned long*)cell_body_address(r, c) << ",";
+      oss << "[lud," << cell_body_length_ref(r, c) << "]" << *(unsigned long*)cell_body_address(r, c);
       break;
     case SQL_C_FLOAT:
-      oss << "[f," << cell_body_length_ref(r, c) << "]" << *(float *)cell_body_address(r, c) << ",";
+      oss << "[f," << cell_body_length_ref(r, c) << "]" << *(float *)cell_body_address(r, c);
       break;
     case SQL_C_DOUBLE:
-      oss << "[lf," << cell_body_length_ref(r, c) << "]" << *(double*)cell_body_address(r, c) << ",";
+      oss << "[lf," << cell_body_length_ref(r, c) << "]" << *(double*)cell_body_address(r, c);
       break;
     case SQL_C_BIT:
-      oss << "[b," << cell_body_length_ref(r, c) << "]" << *(char*)cell_body_address(r, c) << ",";
+      oss << "[b," << cell_body_length_ref(r, c) << "]" << *(char*)cell_body_address(r, c);
       break;
     case SQL_C_STINYINT:
-      oss << "[hhd," << cell_body_length_ref(r, c) << "]" << *(char*)cell_body_address(r, c) << ",";
+      oss << "[hhd," << cell_body_length_ref(r, c) << "]" << *(char*)cell_body_address(r, c);
       break;
     case SQL_C_UTINYINT:
-      oss << "[hhud," << cell_body_length_ref(r, c) << "]" << *(unsigned short*)cell_body_address(r, c) << ",";
+      oss << "[hhud," << cell_body_length_ref(r, c) << "]" << *(unsigned short*)cell_body_address(r, c);
       break;
     case SQL_C_UBIGINT:
-      oss << "[lld," << cell_body_length_ref(r, c) << "]" << *(long long*)cell_body_address(r, c) << ",";
+      oss << "[lld," << cell_body_length_ref(r, c) << "]" << *(long long*)cell_body_address(r, c);
       break;
     case SQL_C_BINARY:
-      oss << "[B," << cell_body_length_ref(r, c) << "][BINARY]" << ",";
+      oss << "[B," << cell_body_length_ref(r, c) << "][BINARY]" ;
       break;
     case SQL_C_TYPE_DATE:
       {
 	SQL_DATE_STRUCT& date = *(SQL_DATE_STRUCT*)cell_body_address(r, c);
-	oss << "[dt," << cell_body_length_ref(r, c) << "]" << date.year << '-' << date.month << '-' << date.day << ',';
+	oss << "[dt," << cell_body_length_ref(r, c) << "]" << date.year << '-' << date.month << '-' << date.day;
       }
       break;
     case SQL_C_TYPE_TIME:
       {
 	SQL_TIME_STRUCT& time = *(SQL_TIME_STRUCT*)cell_body_address(r, c);
-	oss << "[tm," << cell_body_length_ref(r, c) << "]" << time.hour << ':' << time.minute << ':' << time.second << ',';
+	oss << "[tm," << cell_body_length_ref(r, c) << "]" << time.hour << ':' << time.minute << ':' << time.second;
       }
       break;
     case SQL_C_TYPE_TIMESTAMP:
@@ -200,7 +201,7 @@ std::string DataBuffer::dump_cell(size_t r, size_t c) {
       }
       break;
     default:
-      oss << "[UNKNOWN," << cell_body_length_ref(r, c) << "],";
+      oss << "[UNKNOWN," << cell_body_length_ref(r, c) << "]";
       break;
     }
     return oss.str();
@@ -210,7 +211,7 @@ std::string DataBuffer::dump(size_t r) {
   std::ostringstream oss;
   size_t maxc = column_count();
   for (size_t c = 0; c < maxc; ++c) {
-    oss << dump_cell(r, c);
+    oss << dump_cell(r, c) << ",";
   }
   oss << "\n";
   return oss.str();

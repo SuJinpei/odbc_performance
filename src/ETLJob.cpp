@@ -17,6 +17,7 @@ ETLJob::ETLJob()
     supports_options_.set_option_info("max", "The max number of records to load. Default is to load all records in the input file", true, false, true, "-1");
     supports_options_.set_option_info("Istats", "Seconds of monitor stats interval.", true, false, true, "1");
     supports_options_.set_option_info("pseudo", "To test producer speed, consumer not really consum.");
+    supports_options_.set_option_info("show", "print each rowsets when doing ETL.", true);
 }
 
 ETLJob::~ETLJob()

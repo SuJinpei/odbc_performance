@@ -256,7 +256,6 @@ void DBConnection::diag_all()
     diag_hstmt();
     diag_hdbc();
     diag_henv();
-    //odb_error("diag error");
 }
 
 void DBConnection::diag(SQLHANDLE handle, SQLSMALLINT handle_type)
