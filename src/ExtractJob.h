@@ -4,6 +4,7 @@
 #include "ETLJob.h"
 #include "DBProducer.h"
 #include "DBConsumer.h"
+#include "FileConsumer.h"
 
 class ExtractJob : public ETLJob
 {

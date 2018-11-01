@@ -1,5 +1,4 @@
 #include "ExtractJob.h"
-#include "stdoutConsumer.h"
 
 #include <future>
 
@@ -148,7 +147,7 @@ DataProducer * ExtractJob::create_producer(size_t id)
 
 DataConsumer * ExtractJob::create_consumer(size_t id)
 {
-    return new stdoutConsumer(options_);
+    return new FileConsumer(options_);
 }
 
 void ExtractJob::initialize_producer_buffer()
