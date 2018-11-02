@@ -72,6 +72,7 @@ void DBConnection::connect(std::string connect_string) {
 
 void DBConnection::execute_query(std::string query)
 {
+    Timer tm;
     if (!SQL_SUCCEEDED(SQLExecDirect(hstmt_, (SQLCHAR*)query.c_str(), SQL_NTS))) {
         std::cout << "SQL QUERY ERROR\n";
         diag_all();
@@ -83,7 +84,8 @@ void DBConnection::execute_query(std::string query)
             print_result(std::move(results_meta), is_select_query(query));
         }
 
-        std::cout << "\n--- SQL operation success!\n";
+        tm.stop();
+        std::cout << "\n--- SQL operation complete in " << tm.elaspe_sec() << " sec\n";
     }
 }
 

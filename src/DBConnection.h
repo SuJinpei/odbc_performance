@@ -6,6 +6,7 @@
 #endif // WINDOWS_
 
 #include "error.h"
+#include "Common.h"
 #include "ColumnMeta.h"
 
 #include <sqlext.h>

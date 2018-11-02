@@ -1,4 +1,7 @@
 #include "Common.h"
+#include "Common.h"
+#include "Common.h"
+#include "Common.h"
 
 #ifndef _WIN32
 tm* localtime_s(tm* stm, time_t *t) {
@@ -23,3 +26,23 @@ tm* localtime_s(tm* stm, time_t *t) {
   return stm;
 }
 #endif
+
+Timer::Timer()
+{
+    restart();
+}
+
+void Timer::restart()
+{
+    t1 = std::chrono::high_resolution_clock::now();
+}
+
+void Timer::stop()
+{
+    t2 = std::chrono::high_resolution_clock::now();
+}
+
+double Timer::elaspe_sec()
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count() / double(1000);
+}
