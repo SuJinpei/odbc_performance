@@ -72,7 +72,7 @@ void DBConnection::connect(std::string connect_string) {
 
 void DBConnection::execute_query(std::string query)
 {
-    Timer tm;
+    Timer tm{};
     if (!SQL_SUCCEEDED(SQLExecDirect(hstmt_, (SQLCHAR*)query.c_str(), SQL_NTS))) {
         std::cout << "SQL QUERY ERROR\n";
         diag_all();

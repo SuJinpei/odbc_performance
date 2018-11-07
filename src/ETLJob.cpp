@@ -102,6 +102,7 @@ void ETLJob::run()
     for (auto& t : producer_threads) t.join();
     for (auto& t : consumer_threads) t.join();
     monitor_ptr_->stop();
+    console().log_line<ConsoleLog::LINFO>("Total average speed: ", max_ / monitor_ptr_->duration().count(), " rows/s");
 }
 
 /*

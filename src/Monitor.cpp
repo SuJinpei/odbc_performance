@@ -20,11 +20,18 @@ void Monitor::start()
             }
         }
     };
+    ts_ = std::chrono::high_resolution_clock::now();
 }
 
 void Monitor::stop()
 {
+    te_ = std::chrono::high_resolution_clock::now();
     is_stoped_ = true;
     cond_.notify_all();
     stats_thread_.join();
+}
+
+std::chrono::seconds Monitor::duration()
+{
+    return std::chrono::duration_cast<std::chrono::seconds>(te_ - ts_);
 }

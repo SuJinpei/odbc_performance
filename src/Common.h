@@ -23,7 +23,8 @@ tm* localtime_s(tm* stm, time_t *t);
 
 class Timer {
 public:
-    void start();
+    Timer();
+    void restart();
     void stop();
     double elaspe_sec();
 

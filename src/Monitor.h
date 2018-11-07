@@ -13,6 +13,7 @@ public:
     Monitor(std::function<void(void)> stats_fun, std::chrono::seconds intevals);
     void start();
     void stop();
+    std::chrono::seconds duration();
 
 private:
     bool is_stoped_ = false;
@@ -21,6 +22,14 @@ private:
     std::condition_variable cond_;
     std::function<void(void)> stats_fun_;
     std::thread stats_thread_;
+
+#ifdef  _WIN32
+    std::chrono::time_point<std::chrono::steady_clock> ts_;
+    std::chrono::time_point<std::chrono::steady_clock> te_;
+#else
+    std::chrono::time_point<std::chrono::system_clock> ts_;
+    std::chrono::time_point<std::chrono::system_clock> te_;
+#endif //  _WIN32
 };
 
 #endif
