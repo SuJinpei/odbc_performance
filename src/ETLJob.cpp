@@ -202,7 +202,7 @@ void ETLJob::setup_monitor()
             for (size_t i = 0, mx = this->consum_totals_.size(); i < mx; ++i) {
                 this->total_loaded_rows_ += consum_totals_[i];
             }
-            console().log_line<ConsoleLog::LINFO>("speed in ", interval, " seconds: ",
+            console().log_line<ConsoleLog::LINFO>(Timer::get_format_timestamp("Y-m-d H-M-S"), " | speed in ", interval, " seconds: ",
                 (this->total_loaded_rows_ - last_loaded_total) / interval, " rows/s");
         }, 
         std::chrono::seconds(interval));

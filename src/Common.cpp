@@ -1,7 +1,6 @@
 #include "Common.h"
-#include "Common.h"
-#include "Common.h"
-#include "Common.h"
+
+#include <iomanip>
 
 #ifndef _WIN32
 tm* localtime_s(tm* stm, time_t *t) {
@@ -45,4 +44,20 @@ void Timer::stop()
 double Timer::elaspe_sec()
 {
     return std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count() / double(1000);
+}
+
+std::string Timer::get_format_timestamp(std::string fmt)
+{
+    time_t t = time(nullptr);
+    std::tm tm;
+#ifdef _WIN32
+    localtime_s(&tm, &t);
+#else
+    localtime_s(&t, &tm);
+#endif // _WIN32
+
+    std::ostringstream oss;
+    oss << std::put_time(&tm, fmt.c_str());
+
+    return oss.str();
 }

@@ -28,6 +28,8 @@ public:
     void stop();
     double elaspe_sec();
 
+    static std::string get_format_timestamp(std::string fmt);
+
 private:
     std::chrono::time_point<std::chrono::steady_clock> t1;
     std::chrono::time_point<std::chrono::steady_clock> t2;
