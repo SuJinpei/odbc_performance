@@ -48,5 +48,7 @@ private:
     SQLHENV henv_ = NULL;
     SQLHDBC hdbc_ = NULL;
     SQLHSTMT hstmt_ = NULL;
+
+    static std::mutex conn_mutex_;
 };
 #endif
