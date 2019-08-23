@@ -99,7 +99,8 @@ DataBuffer DBConsumer::consume_data(DataBuffer && data)
         odb_error("SQLExecute load");
     }
 
-    conn_.diag_hstmt();
+    //SQLFetch(hstmt_);
+    //SQLFreeStmt(hstmt_, SQL_CLOSE);
 
     return std::move(data);
 }

@@ -3,7 +3,7 @@
 #include <iomanip>
 
 #ifndef _WIN32
-tm* localtime_s(tm* stm, time_t *t) {
+std::tm* localtime_s(std::tm* stm, time_t *t) {
   time_t tmp = *t;
   constexpr int YEAR_SEC = (365*4+1)*24*60*60/4;
   constexpr int MON_SEC = YEAR_SEC / 12;
@@ -24,13 +24,15 @@ tm* localtime_s(tm* stm, time_t *t) {
 
   return stm;
 }
+#else
+#include <time.h>
+#define localtime_s(x, y) localtime_r((y), (x))
 #endif
 
 Timer::Timer()
 {
     restart();
 }
-
 void Timer::restart()
 {
     t1 = std::chrono::high_resolution_clock::now();
@@ -50,11 +52,7 @@ std::string Timer::get_format_timestamp(std::string fmt)
 {
     time_t t = time(nullptr);
     std::tm tm;
-#ifdef _WIN32
     localtime_s(&tm, &t);
-#else
-    localtime_s(&t, &tm);
-#endif // _WIN32
 
     std::ostringstream oss;
     oss << std::put_time(&tm, fmt.c_str());

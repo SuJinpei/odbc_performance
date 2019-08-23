@@ -8,6 +8,8 @@
 #endif // _WIN32
 
 
+std::mutex DBConnection::conn_mutex_{};
+
 DBConnection::DBConnection()
 {
 }
@@ -38,10 +40,12 @@ DBConnection & DBConnection::operator=(DBConnection && other)
 }
 
 void DBConnection::connect(std::string connect_string) {
+    std::lock_guard<std::mutex>lk(conn_mutex_);
+
     if (!SQL_SUCCEEDED(SQLAllocHandle(SQL_HANDLE_ENV, NULL, &henv_))) {
         odb_error("Alloc ODBC env failed");
     }
-    
+
     if (!SQL_SUCCEEDED(SQLSetEnvAttr(henv_, SQL_ATTR_ODBC_VERSION, (SQLPOINTER)SQL_OV_ODBC3, 0))) {
         diag_henv();
     }

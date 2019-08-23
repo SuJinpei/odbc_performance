@@ -170,6 +170,18 @@ void LoadJob::initialize_producer_buffer()
     DataBuffer databuffer;
     databuffer.set_row_count(rows_ < produce_maxs_[0] ? rows_ : produce_maxs_[0]);
 
+    std::cout << "consumer cols:" << consumer_meta_.col_meta.size()
+              << "\n";
+    for (auto &cm : consumer_meta_.col_meta) {
+      std::cout << cm.column_name << "\n";
+    }
+
+    std::cout << "producer cols:" << producer_meta_.col_meta.size()
+              << "\n";
+    for (auto &cm : producer_meta_.col_meta) {
+      std::cout << cm.column_name << "\n";
+    }
+
     if (producer_meta_.col_meta.size() != consumer_meta_.col_meta.size())
         odb_error("source column not match the target column.");
 
