@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <mutex>
 
 class DBConnection
 {
@@ -44,8 +45,8 @@ public:
 private:
     void diag(SQLHANDLE handle, SQLSMALLINT handle_type);
     bool is_select_query(std::string query);
-
-    SQLHENV henv_ = NULL;
+    static std::mutex conn_mutex_;
+    SQLHENV henv_;
     SQLHDBC hdbc_ = NULL;
     SQLHSTMT hstmt_ = NULL;
 };

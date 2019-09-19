@@ -31,8 +31,13 @@ public:
     static std::string get_format_timestamp(std::string fmt);
 
 private:
+#ifndef _WIN32
+    std::chrono::time_point<std::chrono::system_clock> t1;
+    std::chrono::time_point<std::chrono::system_clock> t2;
+#else
     std::chrono::time_point<std::chrono::steady_clock> t1;
     std::chrono::time_point<std::chrono::steady_clock> t2;
+#endif
 };
 
 #endif // !COMMON_H

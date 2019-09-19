@@ -5,6 +5,7 @@ SRC_DIR=./src
 INCLUDE_DIR=-I./src
 
 CPPFLAGS=-static-libgcc -static-libstdc++ -O2 -std=c++17 $(INCLUDE_DIR)
+# CPPFLAGS=-O0 -std=c++17 $(INCLUDE_DIR)
 OBJ_DIR=./obj
 
 LIBS=-lodbc
